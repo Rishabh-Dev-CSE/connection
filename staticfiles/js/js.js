@@ -15,7 +15,24 @@ function resizeCanvas() {
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
 
-const socket = new WebSocket("ws://" + window.location.host + "/ws/chat/" + myUsername + "/");
+const protocol = window.location.protocol === "https:" ? "wss://" : "ws://";
+
+const socket = new WebSocket(
+  protocol + window.location.host + "/ws/chat/" + myUsername + "/"
+);
+
+socket.onopen = () => {
+  console.log("✅ WebSocket connected");
+};
+
+socket.onerror = (e) => {
+  console.error("❌ WebSocket error", e);
+};
+
+socket.onclose = () => {
+  console.warn("⚠️ WebSocket closed");
+};
+
 
 let isDrawing = false;
 let lastPos = null;
