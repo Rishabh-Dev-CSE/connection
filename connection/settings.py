@@ -14,7 +14,10 @@ SECRET_KEY = 'django-insecure-fd=)-u&sp&iuj$mz=m=ibd0z56b_j)a4ia-+06dzp-wr2o051q
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [
+    "https://www.coboard.in/",
+    "https://coboard.in/"
+]
 
 
 # Application definition
