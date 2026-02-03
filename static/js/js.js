@@ -1,24 +1,17 @@
 /* ===========================
-   SAFETY GUARD (VERY IMPORTANT)
-=========================== */
-const canvas = document.getElementById("canvas");
-if (!canvas) {
-  console.warn("canvas.js loaded on non-canvas page");
-  return;
-}
-const ctx = canvas.getContext("2d");
-
-/* ===========================
    URL PARAMS
 =========================== */
-const params = new URLSearchParams(window.location.search);
-const myUsername = params.get("me");
-const toUser = params.get("to");
-const role = params.get("role");
+const urlParams = new URLSearchParams(window.location.search);
+const myUsername = urlParams.get("me");
+const toUser = urlParams.get("to");
+const role = urlParams.get("role");
 
 /* ===========================
    CANVAS SETUP
 =========================== */
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
 ctx.lineJoin = "round";
 ctx.lineCap = "round";
 
@@ -30,19 +23,21 @@ window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
 
 /* ===========================
-   FULLSCREEN (OPTIONAL)
+   FULLSCREEN
 =========================== */
 function enterFullScreen() {
   const el = document.documentElement;
   if (el.requestFullscreen) el.requestFullscreen();
+  else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  else if (el.msRequestFullscreen) el.msRequestFullscreen();
 }
 
 /* ===========================
    WEBSOCKET
 =========================== */
-const protocol = location.protocol === "https:" ? "wss://" : "ws://";
+const protocol = window.location.protocol === "https:" ? "wss://" : "ws://";
 const socket = new WebSocket(
-  protocol + location.host + "/ws/chat/" + myUsername + "/"
+  protocol + window.location.host + "/ws/chat/" + myUsername + "/"
 );
 
 socket.onopen = () => {
@@ -59,16 +54,16 @@ socket.onclose = () => console.warn("⚠️ WebSocket closed");
 let isDrawing = false;
 let lastPos = null;
 
-function getPointerPos(e) {
+function getPointerPos(evt) {
   const rect = canvas.getBoundingClientRect();
-  const x = e.touches ? e.touches[0].clientX : e.clientX;
-  const y = e.touches ? e.touches[0].clientY : e.clientY;
+  const x = evt.touches ? evt.touches[0].clientX : evt.clientX;
+  const y = evt.touches ? evt.touches[0].clientY : evt.clientY;
   return { x: x - rect.left, y: y - rect.top };
 }
 
-function draw(rx, ry, dragging, color, size) {
-  const x = rx * canvas.width;
-  const y = ry * canvas.height;
+function draw(relX, relY, dragging, color, size) {
+  const x = relX * canvas.width;
+  const y = relY * canvas.height;
 
   ctx.strokeStyle = color;
   ctx.lineWidth = size;
@@ -99,36 +94,36 @@ socket.onmessage = e => {
 };
 
 /* ===========================
-   RAF THROTTLE SEND
+   FAST SEND (RAF THROTTLE)
 =========================== */
-let pending = null;
-let raf = false;
+let pendingPoint = null;
+let rafRunning = false;
 
 function queueDraw(x, y, dragging) {
-  pending = {
+  pendingPoint = {
     x: x / canvas.width,
     y: y / canvas.height,
     dragging,
-    color: document.getElementById("color")?.value || "#000",
-    size: parseInt(document.getElementById("size")?.value || 3)
+    color: document.getElementById("color").value,
+    size: parseInt(document.getElementById("size").value),
   };
 
-  if (!raf) {
-    raf = true;
+  if (!rafRunning) {
+    rafRunning = true;
     requestAnimationFrame(flushDraw);
   }
 }
 
 function flushDraw() {
-  if (pending && socket.readyState === WebSocket.OPEN) {
+  if (pendingPoint && socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify({
       to: toUser,
       type: "draw",
-      ...pending
+      ...pendingPoint
     }));
-    pending = null;
+    pendingPoint = null;
   }
-  raf = false;
+  rafRunning = false;
 }
 
 /* ===========================
@@ -140,9 +135,8 @@ if (role === "writer") {
     isDrawing = true;
     const p = getPointerPos(e);
     draw(p.x / canvas.width, p.y / canvas.height, false,
-      document.getElementById("color")?.value || "#000",
-      parseInt(document.getElementById("size")?.value || 3)
-    );
+         document.getElementById("color").value,
+         parseInt(document.getElementById("size").value));
     queueDraw(p.x, p.y, false);
   });
 
@@ -150,9 +144,8 @@ if (role === "writer") {
     if (!isDrawing) return;
     const p = getPointerPos(e);
     draw(p.x / canvas.width, p.y / canvas.height, true,
-      document.getElementById("color")?.value || "#000",
-      parseInt(document.getElementById("size")?.value || 3)
-    );
+         document.getElementById("color").value,
+         parseInt(document.getElementById("size").value));
     queueDraw(p.x, p.y, true);
   });
 
@@ -164,9 +157,8 @@ if (role === "writer") {
     isDrawing = true;
     const p = getPointerPos(e);
     draw(p.x / canvas.width, p.y / canvas.height, false,
-      document.getElementById("color")?.value || "#000",
-      parseInt(document.getElementById("size")?.value || 3)
-    );
+         document.getElementById("color").value,
+         parseInt(document.getElementById("size").value));
     queueDraw(p.x, p.y, false);
   });
 
@@ -175,9 +167,8 @@ if (role === "writer") {
     if (!isDrawing) return;
     const p = getPointerPos(e);
     draw(p.x / canvas.width, p.y / canvas.height, true,
-      document.getElementById("color")?.value || "#000",
-      parseInt(document.getElementById("size")?.value || 3)
-    );
+         document.getElementById("color").value,
+         parseInt(document.getElementById("size").value));
     queueDraw(p.x, p.y, true);
   });
 
@@ -188,6 +179,19 @@ if (role === "writer") {
     lastPos = null;
     socket.send(JSON.stringify({ to: toUser, type: "clear" }));
   };
+}
+
+/* ===========================
+   CONNECT PAGE REDIRECT
+=========================== */
+function connect() {
+  const me = document.getElementById("me").value.trim();
+  const to = document.getElementById("to").value.trim();
+  const role = document.getElementById("role").value;
+
+  if (!me || !to) return alert("Enter both usernames");
+
+  window.location.href = `/canvas/?me=${me}&to=${to}&role=${role}`;
 }
 
 /* ===========================

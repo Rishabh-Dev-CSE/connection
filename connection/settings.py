@@ -12,12 +12,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-fd=)-u&sp&iuj$mz=m=ibd0z56b_j)a4ia-+06dzp-wr2o051q'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = [
-    "coboard.in",
-    "www.coboard.in",
-    "localhost"
+  "*"
 ]
 
 # Application definition
