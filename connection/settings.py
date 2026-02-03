@@ -17,9 +17,8 @@ DEBUG = False
 ALLOWED_HOSTS = [
     "coboard.in",
     "www.coboard.in",
+    "localhost"
 ]
-
-
 
 # Application definition
 
