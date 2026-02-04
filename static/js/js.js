@@ -191,14 +191,18 @@ function connect() {
 
   if (!me || !to) return alert("Enter both usernames");
 
-  window.location.href = `/canvas/?me=${me}&to=${to}&role=${role}`;
+  window.location.href = `/${role}/?me=${me}&to=${to}&role=${role}`;
 }
 
 /* ===========================
    TOOL VISIBILITY
 =========================== */
 const tools = document.getElementById("tools");
-if (tools) tools.style.display = role === "board" ? "none" : "block";
+if (tools) {
+  tools.style.display = role === "board" ? "none" : "block";
+  document.getElementById("full").style.display  = role === "board" ? "block" : "none"
+}
+
 
 /* ===========================
    MOBILE ADDRESS BAR HIDE

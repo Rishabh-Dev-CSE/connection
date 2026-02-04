@@ -6,7 +6,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=3.0" />
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8034689723711025"
-     crossorigin="anonymous"></script>
+    crossorigin="anonymous"></script>
   <meta name="google-adsense-account" content="ca-pub-8034689723711025">
 
   <link rel="stylesheet" href="{% static  'css/font-owsome.css' %}">
@@ -19,7 +19,21 @@
 
 <body>
   <h2>Connect Devices</h2>
-  <button onclick="writerBoard()">writer</button>
+  <label>Your Username:</label>
+  <input id="me" placeholder="e.g. phone" /><br><br>
+  <label>Send To (Receiver Username):</label>
+  <input id="to" placeholder="e.g. system" /><br><br>
+  <label>Role:</label>
+  <select id="role">
+    <option value="writer">Writer (Input Device)</option>
+    <option value="board">Board (Output Device)</option>
+  </select><br><br>
+  <input id="link" ></input>
+  
+
+  <button onclick="connect()">Start</button>
+
+  <script src="{% static  'js/connect.js' %}"></script>
 </body>
-<script src="{% static 'js/main.js' %}"></script>
+
 </html>

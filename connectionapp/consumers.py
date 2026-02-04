@@ -3,7 +3,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 
 USER_CHANNELS = {}
 
-class PrivateChatConsumer(AsyncWebsocketConsumer):
+class WriterBoard(AsyncWebsocketConsumer):
     async def connect(self):
         self.username = self.scope["url_route"]["kwargs"]["username"]
         USER_CHANNELS[self.username] = self.channel_name
@@ -14,7 +14,7 @@ class PrivateChatConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         data = json.loads(text_data)
-        to_user = data.get("to")
+        to_user = data.get("to") 
 
         if to_user in USER_CHANNELS:
             await self.channel_layer.send(
