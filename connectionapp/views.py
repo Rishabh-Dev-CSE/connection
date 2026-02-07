@@ -1,5 +1,11 @@
 from django.http import HttpResponse
 from django.shortcuts import render
+from django.conf import settings
+from django.conf.urls.static import static
+
+def ads_txt(request):
+    with open(settings.BASE_DIR / 'ads.txt') as f:
+        return HttpResponse(f.read(), content_type="text/plain")
 
 def index(request):
     return render(request, 'index.html')
