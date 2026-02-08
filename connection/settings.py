@@ -15,7 +15,7 @@ SECRET_KEY = 'django-insecure-fd=)-u&sp&iuj$mz=m=ibd0z56b_j)a4ia-+06dzp-wr2o051q
 DEBUG = False
 
 ALLOWED_HOSTS = [
-    'coboard.in'
+    '*' 
 ]
 
 # Application definition
