@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create Video Room</title>
+  <!-- Ads (UNCHANGED) -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8034689723711025"
+    crossorigin="anonymous"></script>
+  <meta name="google-adsense-account" content="ca-pub-8034689723711025">
+
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background:#0f172a;
+  color:white;
+  height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.card{
+  width:380px;
+  padding:30px;
+  background:#1e293b;
+  border-radius:14px;
+  text-align:center;
+  box-shadow:0 10px 25px rgba(0,0,0,.4);
+}
+
+h2{
+  margin-top:0;
+}
+
+input{
+  width:100%;
+  padding:12px;
+  border-radius:8px;
+  border:none;
+  margin-top:15px;
+  background:#020617;
+  color:#38bdf8;
+}
+
+button{
+  width:100%;
+  padding:12px;
+  margin-top:15px;
+  border:none;
+  border-radius:10px;
+  font-size:15px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.create{ background:#3b82f6; color:white; }
+.copy{ background:#f59e0b; color:black; }
+.join{ background:#22c55e; color:#022c22; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h2>Create Video Room</h2>
+  <p>Share link to start video call</p>
+
+  <input id="link" placeholder="Click Create Room first" readonly>
+
+  <button class="create" onclick="createRoom()">Create Room</button>
+  <button class="copy" onclick="copyLink()" id="copyBtn" style="display:none">
+    Copy Link
+  </button>
+  <button class="join" onclick="joinRoom()" id="joinBtn" style="display:none">
+    Join Room
+  </button>
+</div>
+
+<script>
+let roomId = "";
+let roomLink = "";
+
+function randomId(){
+  return Math.random().toString(36).substring(2,10);
+}
+
+function createRoom(){
+  roomId = randomId();
+
+  roomLink = window.location.origin + "/video/?room=" + roomId;
+
+  document.getElementById("link").value = roomLink;
+
+  document.getElementById("copyBtn").style.display="block";
+  document.getElementById("joinBtn").style.display="block";
+}
+
+function copyLink(){
+  navigator.clipboard.writeText(roomLink);
+  alert("Link copied");
+}
+
+function joinRoom(){
+  window.location.href = roomLink;
+}
+</script>
+
+</body>
+</html>

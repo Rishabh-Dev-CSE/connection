@@ -5,21 +5,218 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=3.0" />
+
+  <!-- Ads (UNCHANGED) -->
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8034689723711025"
-     crossorigin="anonymous"></script>
+    crossorigin="anonymous"></script>
   <meta name="google-adsense-account" content="ca-pub-8034689723711025">
 
   <link rel="stylesheet" href="{% static  'css/font-owsome.css' %}">
   <link rel="stylesheet" href="{% static  'css/style.css' %}">
-  <title>Join Drawing</title>
-  <style>
+  <title>Connect Devices</title>
 
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #fff;
+    }
+
+    /* HEADER */
+    header {
+      background: #020617;
+      padding: 14px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #1e293b;
+    }
+
+    .logo {
+      font-size: 20px;
+      font-weight: bold;
+      color: #38bdf8;
+    }
+
+    nav a {
+      color: #cbd5f5;
+      margin-left: 18px;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    nav a:hover {
+      color: white;
+    }
+
+    /* HERO */
+    .hero {
+      padding: 60px 20px;
+      text-align: center;
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+    }
+
+    .hero h1 {
+      font-size: 34px;
+      margin-bottom: 10px;
+    }
+
+    .hero p {
+      opacity: .8;
+      max-width: 600px;
+      margin: auto;
+    }
+
+    /* SERVICES */
+    .services {
+      padding: 50px 20px;
+      max-width: 1100px;
+      margin: auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 25px;
+    }
+
+    .card {
+      background: #020617;
+      border: 1px solid #1e293b;
+      padding: 25px;
+      border-radius: 14px;
+      transition: .2s;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      border-color: #38bdf8;
+    }
+
+    .card h3 {
+      margin-top: 0;
+      font-size: 20px;
+    }
+
+    .card p {
+      font-size: 14px;
+      opacity: .8;
+      min-height: 60px;
+    }
+
+    .card a {
+      display: inline-block;
+      margin-top: 14px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: bold;
+      color: white;
+    }
+
+    .board {
+      background: #22c55e;
+    }
+
+    .writer {
+      background: #3b82f6;
+    }
+
+    .cursor {
+      background: #f59e0b;
+      color: black;
+    }
+
+    /* FOOTER */
+    footer {
+      margin-top: 50px;
+      background: #020617;
+      border-top: 1px solid #1e293b;
+      text-align: center;
+      padding: 25px 15px;
+      font-size: 13px;
+      opacity: .7;
+    }
   </style>
 </head>
 
 <body>
-  <h2>Connect Devices</h2>
-  <button onclick="writerBoard()">writer</button>
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">LiveConnect</div>
+    <nav>
+      <a href="#">Home</a>
+      <a href="#services">Services</a>
+    </nav>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero">
+    <h1>Connect Phone & Computer Instantly</h1>
+    <p>
+      Turn your phone into a drawing pen or mouse. Control your computer screen wirelessly and draw in realtime.
+    </p>
+  </section>
+
+  <!-- SERVICES -->
+  <section class="services" id="services">
+
+    <!-- BOARD -->
+    <div class="card">
+      <h3>Use as Board</h3>
+      <p>
+        Make this device a display screen. Perfect for laptop, PC, or TV where drawings will appear live.
+      </p>
+      <a href="javascript:void(0)" class="board" onclick="createBoard()">
+        Start Board
+      </a>
+    </div>
+
+    <!-- WRITER -->
+    <div class="card">
+      <h3>Use as Writer</h3>
+      <p>
+        Use your phone as a pen. Draw on screen remotely and everything will appear on the connected board.
+      </p>
+      <a href="javascript:void(0)" class="writer" onclick="writerBoard()">
+        Start Writing
+      </a>
+    </div>
+
+    <!-- CURSOR CONTROL -->
+    <div class="card">
+      <h3>Cursor Control</h3>
+      <p>
+        Control computer cursor from your phone. No mouse needed. Move, click and operate wirelessly.
+      </p>
+      <a href="javascript:void(0)" class="cursor" onclick="cursorControl()">
+        Control Cursor
+      </a>
+    </div>
+<!-- call to strenger  -->
+    <div class="card">
+      <h3>Make A video Call</h3>
+      <p>
+        Make this device a display screen. Perfect for laptop, PC, or TV where drawings will appear live.
+      </p>
+      <a href="./create-video" class="board" >
+        start Call
+      </a>
+    </div>
+
+
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    © 2026 LiveConnect — Realtime Drawing & Device Control
+  </footer>
+
+  <script src="{% static 'js/main.js' %}"></script>
 </body>
-<script src="{% static 'js/main.js' %}"></script>
+
 </html>

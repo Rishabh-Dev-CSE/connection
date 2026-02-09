@@ -1,75 +1,105 @@
 /* ===========================
    URL PARAMS
 =========================== */
-const params = new URLSearchParams(window.location.search);
-const me = params.get("me");
+const params = new URLSearchParams(location.search);
+const room = params.get("room");
 
 /* ===========================
-   CANVAS SETUP
+   CANVAS SETUP (Hi-DPI)
 =========================== */
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-ctx.lineJoin = "round";
-ctx.lineCap = "round";
-
 function resizeCanvas() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = innerWidth * dpr;
+  canvas.height = innerHeight * dpr;
+  canvas.style.width = innerWidth + "px";
+  canvas.style.height = innerHeight + "px";
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
 }
-window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
-
-/* ===========================
-   FULLSCREEN
-=========================== */
-document.getElementById("full")?.addEventListener("click", () =>
-  document.documentElement.requestFullscreen?.()
-);
+addEventListener("resize", resizeCanvas);
 
 /* ===========================
    WEBSOCKET
 =========================== */
 const protocol = location.protocol === "https:" ? "wss://" : "ws://";
-const socket = new WebSocket(
-  protocol + location.host + `/ws/chat/${me}/`
-);
+const socket = new WebSocket(`${protocol}${location.host}/ws/chat/${room}/`);
 
-socket.onopen = () => console.log("✅ Board connected");
+/* ===========================
+   DRAW STATE
+=========================== */
+let strokePoints = [];
+
+/* ===========================
+   SMOOTH DRAW
+=========================== */
+function drawSmooth(points) {
+  if (points.length < 2) return;
+
+  ctx.strokeStyle = points[0].color;
+  ctx.lineWidth = points[0].size;
+
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+
+  for (let i = 1; i < points.length; i++) {
+    const midX = (points[i - 1].x + points[i].x) / 2;
+    const midY = (points[i - 1].y + points[i].y) / 2;
+    ctx.quadraticCurveTo(
+      points[i - 1].x,
+      points[i - 1].y,
+      midX,
+      midY
+    );
+  }
+
+  ctx.lineTo(points.at(-1).x, points.at(-1).y);
+  ctx.stroke();
+}
+
+/* ===========================
+   RENDER LOOP
+=========================== */
+function render() {
+  if (strokePoints.length > 1) {
+    drawSmooth(strokePoints);
+    strokePoints = [strokePoints.at(-1)];
+  }
+  requestAnimationFrame(render);
+}
+render();
 
 /* ===========================
    RECEIVE DATA
 =========================== */
-let lastPos = null;
-
-function draw(x, y, drag, color, size) {
-  ctx.strokeStyle = color;
-  ctx.lineWidth = size;
-  ctx.beginPath();
-
-  if (drag && lastPos) ctx.moveTo(lastPos.x, lastPos.y);
-  else ctx.moveTo(x - 1, y);
-
-  ctx.lineTo(x, y);
-  ctx.stroke();
-  lastPos = { x, y };
-}
-
 socket.onmessage = e => {
-  const d = JSON.parse(e.data);
+  const msg = JSON.parse(e.data);
 
-  if (d.type === "draw") {
-    draw(
-      d.x * canvas.width,
-      d.y * canvas.height,
-      d.dragging,
-      d.color,
-      d.size
-    );
+  if (msg.type === "draw") {
+    // supports single point OR batched data
+    const data = Array.isArray(msg.data) ? msg.data : [msg];
+
+    data.forEach(p => {
+      const x = p.x * canvas.width;
+      const y = p.y * canvas.height;
+
+      if (!p.dragging) strokePoints = [];
+
+      strokePoints.push({
+        x,
+        y,
+        color: p.color,
+        size: p.size
+      });
+    });
   }
 
-  if (d.type === "clear") {
+  if (msg.type === "clear") {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    lastPos = null;
+    strokePoints = [];
   }
 };

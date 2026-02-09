@@ -1,10 +1,14 @@
 /* ===========================
    URL PARAMS
 =========================== */
-const urlParams = new URLSearchParams(window.location.search);
-const myUsername = urlParams.get("me");
-const toUser = urlParams.get("to");
-const role = urlParams.get("role");
+const params = new URLSearchParams(window.location.search);
+const room = params.get("room");
+const role = params.get("role");   // writer / board
+
+if (!room) {
+  alert("Invalid room");
+  throw new Error("Room missing");
+}
 
 /* ===========================
    CANVAS SETUP
@@ -33,20 +37,21 @@ function enterFullScreen() {
 }
 
 /* ===========================
-   WEBSOCKET
+   WEBSOCKET (ROOM BASED)
 =========================== */
-const protocol = window.location.protocol === "https:" ? "wss://" : "ws://";
+const protocol = location.protocol === "https:" ? "wss://" : "ws://";
+
 const socket = new WebSocket(
-  protocol + window.location.host + "/ws/chat/" + myUsername + "/"
+  `${protocol}${location.host}/ws/chat/${room}/`
 );
 
 socket.onopen = () => {
-  console.log("✅ WebSocket connected");
-  enterFullScreen();
+  console.log("✅ Connected to room:", room);
+  if (role === "writer") enterFullScreen();
 };
 
-socket.onerror = e => console.error("❌ WebSocket error", e);
-socket.onclose = () => console.warn("⚠️ WebSocket closed");
+socket.onerror = e => console.error("WS error", e);
+socket.onclose = () => console.warn("WS closed");
 
 /* ===========================
    DRAW HELPERS
@@ -54,11 +59,11 @@ socket.onclose = () => console.warn("⚠️ WebSocket closed");
 let isDrawing = false;
 let lastPos = null;
 
-function getPointerPos(evt) {
-  const rect = canvas.getBoundingClientRect();
-  const x = evt.touches ? evt.touches[0].clientX : evt.clientX;
-  const y = evt.touches ? evt.touches[0].clientY : evt.clientY;
-  return { x: x - rect.left, y: y - rect.top };
+function getPos(e) {
+  const r = canvas.getBoundingClientRect();
+  const x = e.touches ? e.touches[0].clientX : e.clientX;
+  const y = e.touches ? e.touches[0].clientY : e.clientY;
+  return { x: x - r.left, y: y - r.top };
 }
 
 function draw(relX, relY, dragging, color, size) {
@@ -74,102 +79,99 @@ function draw(relX, relY, dragging, color, size) {
 
   ctx.lineTo(x, y);
   ctx.stroke();
+
   lastPos = { x, y };
 }
 
 /* ===========================
-   RECEIVE DATA
+   RECEIVE DATA (BOARD + WRITER)
 =========================== */
 socket.onmessage = e => {
-  const data = JSON.parse(e.data);
+  const d = JSON.parse(e.data);
 
-  if (data.type === "draw") {
-    draw(data.x, data.y, data.dragging, data.color, data.size);
+  if (d.type === "draw") {
+    draw(d.x, d.y, d.dragging, d.color, d.size);
   }
 
-  if (data.type === "clear") {
+  if (d.type === "clear") {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     lastPos = null;
   }
 };
 
 /* ===========================
-   FAST SEND (RAF THROTTLE)
+   FAST SEND (WRITER ONLY)
 =========================== */
-let pendingPoint = null;
-let rafRunning = false;
+let pending = null;
+let raf = false;
 
-function queueDraw(x, y, dragging) {
-  pendingPoint = {
+function queue(x, y, drag) {
+  pending = {
     x: x / canvas.width,
     y: y / canvas.height,
-    dragging,
-    color: document.getElementById("color").value,
-    size: parseInt(document.getElementById("size").value),
+    dragging: drag,
+    color: document.getElementById("color")?.value || "#000",
+    size: +document.getElementById("size")?.value || 4
   };
 
-  if (!rafRunning) {
-    rafRunning = true;
-    requestAnimationFrame(flushDraw);
+  if (!raf) {
+    raf = true;
+    requestAnimationFrame(flush);
   }
 }
 
-function flushDraw() {
-  if (pendingPoint && socket.readyState === WebSocket.OPEN) {
+function flush() {
+  if (pending && socket.readyState === 1) {
     socket.send(JSON.stringify({
-      to: toUser,
       type: "draw",
-      ...pendingPoint
+      ...pending
     }));
-    pendingPoint = null;
+    pending = null;
   }
-  rafRunning = false;
+  raf = false;
 }
 
 /* ===========================
-   DRAW EVENTS (WRITER ONLY)
+   WRITER EVENTS
 =========================== */
 if (role === "writer") {
 
   canvas.addEventListener("mousedown", e => {
     isDrawing = true;
-    const p = getPointerPos(e);
+    const p = getPos(e);
     draw(p.x / canvas.width, p.y / canvas.height, false,
-         document.getElementById("color").value,
-         parseInt(document.getElementById("size").value));
-    queueDraw(p.x, p.y, false);
+         color.value, +size.value);
+    queue(p.x, p.y, false);
   });
 
   canvas.addEventListener("mousemove", e => {
     if (!isDrawing) return;
-    const p = getPointerPos(e);
+    const p = getPos(e);
     draw(p.x / canvas.width, p.y / canvas.height, true,
-         document.getElementById("color").value,
-         parseInt(document.getElementById("size").value));
-    queueDraw(p.x, p.y, true);
+         color.value, +size.value);
+    queue(p.x, p.y, true);
   });
 
-  canvas.addEventListener("mouseup", () => isDrawing = false);
-  canvas.addEventListener("mouseleave", () => isDrawing = false);
+  ["mouseup","mouseleave"].forEach(ev =>
+    canvas.addEventListener(ev, () => isDrawing = false)
+  );
 
   canvas.addEventListener("touchstart", e => {
     e.preventDefault();
     isDrawing = true;
-    const p = getPointerPos(e);
+    const p = getPos(e);
     draw(p.x / canvas.width, p.y / canvas.height, false,
-         document.getElementById("color").value,
-         parseInt(document.getElementById("size").value));
-    queueDraw(p.x, p.y, false);
+         color.value, +size.value);
+    queue(p.x, p.y, false);
   });
 
   canvas.addEventListener("touchmove", e => {
     e.preventDefault();
     if (!isDrawing) return;
-    const p = getPointerPos(e);
+    const p = getPos(e);
     draw(p.x / canvas.width, p.y / canvas.height, true,
-         document.getElementById("color").value,
-         parseInt(document.getElementById("size").value));
-    queueDraw(p.x, p.y, true);
+         color.value, +size.value);
+    queue(p.x, p.y, true);
   });
 
   canvas.addEventListener("touchend", () => isDrawing = false);
@@ -177,21 +179,8 @@ if (role === "writer") {
   window.clearCanvas = () => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     lastPos = null;
-    socket.send(JSON.stringify({ to: toUser, type: "clear" }));
+    socket.send(JSON.stringify({ type: "clear" }));
   };
-}
-
-/* ===========================
-   CONNECT PAGE REDIRECT
-=========================== */
-function connect() {
-  const me = document.getElementById("me").value.trim();
-  const to = document.getElementById("to").value.trim();
-  const role = document.getElementById("role").value;
-
-  if (!me || !to) return alert("Enter both usernames");
-
-  window.location.href = `/${role}/?me=${me}&to=${to}&role=${role}`;
 }
 
 /* ===========================
@@ -200,11 +189,11 @@ function connect() {
 const tools = document.getElementById("tools");
 if (tools) {
   tools.style.display = role === "board" ? "none" : "block";
-  document.getElementById("full").style.display  = role === "board" ? "block" : "none"
+  document.getElementById("full").style.display =
+      role === "board" ? "block" : "none";
 }
 
-
 /* ===========================
-   MOBILE ADDRESS BAR HIDE
+   MOBILE BAR HIDE
 =========================== */
 setTimeout(() => window.scrollTo(0, 1), 100);

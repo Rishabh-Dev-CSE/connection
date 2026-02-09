@@ -2,41 +2,31 @@ let generatedLink = "";
 let startLink = "";
 let isCopied = false;
 
+function generateRoom() {
+    return Math.random().toString(36).substring(2, 10);
+}
+
 function connect() {
-    const me = document.getElementById("me").value.trim();
-    const to = document.getElementById("to").value.trim();
-    const role = document.getElementById("role").value;
+    const room = generateRoom();
 
-    if (!me || !to) {
-        alert("Enter both usernames");
-        return;
-    }
+    // PC = board
+    startLink = `${window.location.origin}/writer/?room=${room}`;
 
-    // 🔁 opposite role decide karo
-    const oppositeRole = role === "writer" ? "board" : "writer";
-
-    // 🔹 current device (Start button)
-    startLink =
-        `${window.location.origin}/canvas/?me=${encodeURIComponent(me)}&to=${encodeURIComponent(to)}&role=${role}`;
-
-    // 🔹 other device (Copy link)
-    generatedLink =
-        `${window.location.origin}/canvas/?me=${encodeURIComponent(to)}&to=${encodeURIComponent(me)}&role=${oppositeRole}`;
+    // Phone = writer
+    generatedLink = `${window.location.origin}/board/?room=${room}`;
 
     document.getElementById("link").value = generatedLink;
+
+    document.getElementById("copyBtn").style.display = "block";
 }
 
 function copyLink() {
-    if (!generatedLink) {
-        alert("Create link first");
-        return;
-    }
+    if (!generatedLink) return;
 
     navigator.clipboard.writeText(generatedLink);
     isCopied = true;
 
-    alert("Link copied. Now click Start.");
-    document.getElementById("startBtn").disabled = false;
+    document.getElementById("session").style.display = "block";
 }
 
 function startSession() {
@@ -45,6 +35,5 @@ function startSession() {
         return;
     }
 
-    // ✅ ONLY current device opens canvas
     window.location.href = startLink;
 }

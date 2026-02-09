@@ -5,35 +5,101 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=3.0" />
+
+  <!-- Ads (UNCHANGED) -->
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8034689723711025"
     crossorigin="anonymous"></script>
   <meta name="google-adsense-account" content="ca-pub-8034689723711025">
 
-  <link rel="stylesheet" href="{% static  'css/font-owsome.css' %}">
-  <link rel="stylesheet" href="{% static  'css/style.css' %}">
-  <title>Join Drawing</title>
+  <link rel="stylesheet" href="{% static 'css/font-owsome.css' %}">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <title>Create Drawing Room</title>
+
   <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg,#0f172a,#1e293b);
+      color: white;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 420px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid #1e293b;
+      border-radius: 16px;
+      padding: 30px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      text-align: center;
+    }
+
+    h2 {
+      margin-top: 0;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      opacity: .7;
+      margin-bottom: 25px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      background: #020617;
+      color: #38bdf8;
+      margin-bottom: 14px;
+      font-size: 14px;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      margin-top: 10px;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .create { background: #3b82f6; color: white; }
+    .copy   { background: #f59e0b; color: black; }
+    .start  { background: #22c55e; color: #022c22; }
 
   </style>
 </head>
 
 <body>
-  <h2>Connect Devices</h2>
-  <label>Your Username:</label>
-  <input id="me" placeholder="e.g. phone" /><br><br>
-  <label>Send To (Receiver Username):</label>
-  <input id="to" placeholder="e.g. system" /><br><br>
-  <label>Role:</label>
-  <select id="role">
-    <option value="writer">Writer (Input Device)</option>
-    <option value="board">Board (Output Device)</option>
-  </select><br><br>
-  <input id="link" ></input>
-  
 
-  <button onclick="connect()">Start</button>
+  <div class="card">
+    <h2>Create Drawing Room</h2>
+    <div class="subtitle">Use computer as board, phone as pen</div>
 
-  <script src="{% static  'js/connect.js' %}"></script>
+    <input id="link" placeholder="Click 'Create Room' first" readonly>
+
+    <button class="create" onclick="connect()">Create Room</button>
+
+    <button class="copy" onclick="copyLink()" id="copyBtn" style="display:none;">
+      Copy Link for Phone
+    </button>
+
+    <button class="start" onclick="startSession()" id="session" style="display:none;">
+      Open Board Screen
+    </button>
+  </div>
+
+  <script src="{% static 'js/connect.js' %}"></script>
 </body>
-
 </html>

@@ -1,43 +1,53 @@
-from django.http import HttpResponse
 from django.shortcuts import render
-from django.conf import settings
-from django.conf.urls.static import static
+from django.http import HttpResponse
 
+
+# Home / connect page
 def index(request):
-    return render(request, 'index.html')
+    return render(request, "index.html")
 
+
+# Room create page (agar alag se use kar rahe ho)
 def writer_connection(request):
-    return render(request, 'writer/make_connection.html')
+    return render(request, "writer/make_connection.html")
 
 
-
+# Writer pad (Phone)
 def write_view(request):
-    me = request.GET.get('me')
-    to = request.GET.get('to')
-    role = request.GET.get('role')
-    
-    if not me or not to:
-        return HttpResponse("Invalid URL", status=400)
+    room = request.GET.get("room")
 
-    if role != "writer":
-        return HttpResponse("Unauthorized", status=403)
+    if not room:
+        return HttpResponse("Room ID missing", status=400)
 
     return render(
         request,
-        'writer/write_pad.html',
-        {'me': int(me), 'to': int(to)}
+        "writer/writer.html",
+        {
+            "room": room
+        }
     )
-    
-    
+
+
+# Board screen (PC)
 def board_view(request):
-    me = request.GET.get('me')
-    to = request.GET.get('to')
+    room = request.GET.get("room")
 
-    if not me or not to:
-        return HttpResponse("Invalid URL", status=400)
+    if not room:
+        return HttpResponse("Room ID missing", status=400)
 
     return render(
         request,
-        'writer/board.html',
-        {'me': int(me), 'to': int(to)}
+        "writer/board.html",
+        {
+            "room": room
+        }
     )
+
+def create_video(request):
+    return render(request, "video/create_video.html")
+
+def video_page(request):
+    room = request.GET.get("room")
+    if not room:
+        return HttpResponse("Room missing")
+    return render(request, "video/video.html", {"room": room})

@@ -1,133 +1,164 @@
 /* ===========================
    URL PARAMS
 =========================== */
-const params = new URLSearchParams(window.location.search);
-const me = params.get("me");
-const toUser = params.get("to");
+const params = new URLSearchParams(location.search);
+const room = params.get("room");
+if (!room) throw new Error("Room missing");
 
 /* ===========================
-   CANVAS SETUP
+   CANVAS SETUP (Hi-DPI)
 =========================== */
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-ctx.lineJoin = "round";
-ctx.lineCap = "round";
-
 function resizeCanvas() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = innerWidth * dpr;
+  canvas.height = innerHeight * dpr;
+  canvas.style.width = innerWidth + "px";
+  canvas.style.height = innerHeight + "px";
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
 }
-window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
-
-/* ===========================
-   FULLSCREEN
-=========================== */
-function enterFullScreen() {
-  document.documentElement.requestFullscreen?.();
-}
+addEventListener("resize", resizeCanvas);
 
 /* ===========================
    WEBSOCKET
 =========================== */
 const protocol = location.protocol === "https:" ? "wss://" : "ws://";
-const socket = new WebSocket(
-  protocol + location.host + `/ws/chat/${me}/`
-);
+const socket = new WebSocket(`${protocol}${location.host}/ws/chat/${room}/`);
 
-socket.onopen = () => {
-  console.log("✅ Writer connected");
-  enterFullScreen();
-};
-
-socket.onerror = e => console.error("❌ WS error", e);
+socket.onopen = () => console.log("Premium writer connected");
 
 /* ===========================
-   DRAW LOGIC
+   STATE
 =========================== */
-let isDrawing = false;
-let lastPos = null;
+let drawing = false;
+let points = [];
+let sendQueue = [];
 
-function getPos(e) {
+const colorInput = document.getElementById("color");
+const sizeInput = document.getElementById("size");
+
+/* ===========================
+   HELPERS
+=========================== */
+function pos(e) {
   const r = canvas.getBoundingClientRect();
-  const x = e.touches ? e.touches[0].clientX : e.clientX;
-  const y = e.touches ? e.touches[0].clientY : e.clientY;
-  return { x: x - r.left, y: y - r.top };
+  const p = e.touches ? e.touches[0] : e;
+  return { x: p.clientX - r.left, y: p.clientY - r.top };
 }
 
-function draw(x, y, drag, color, size) {
-  ctx.strokeStyle = color;
-  ctx.lineWidth = size;
+function drawSmoothStroke(pts) {
+  if (pts.length < 2) return;
+
+  ctx.strokeStyle = pts[0].color;
+  ctx.lineWidth = pts[0].size;
   ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
 
-  if (drag && lastPos) ctx.moveTo(lastPos.x, lastPos.y);
-  else ctx.moveTo(x - 1, y);
+  for (let i = 1; i < pts.length; i++) {
+    const midX = (pts[i - 1].x + pts[i].x) / 2;
+    const midY = (pts[i - 1].y + pts[i].y) / 2;
+    ctx.quadraticCurveTo(
+      pts[i - 1].x,
+      pts[i - 1].y,
+      midX,
+      midY
+    );
+  }
 
-  ctx.lineTo(x, y);
+  ctx.lineTo(pts.at(-1).x, pts.at(-1).y);
   ctx.stroke();
-  lastPos = { x, y };
 }
 
 /* ===========================
-   FAST SEND (RAF)
+   RENDER LOOP
 =========================== */
-let pending = null;
-let raf = false;
+function render() {
+  if (points.length > 1) {
+    drawSmoothStroke(points);
+    points = [points.at(-1)];
+  }
+  requestAnimationFrame(render);
+}
+render();
 
-function queue(x, y, drag) {
-  pending = {
-    x: x / canvas.width,
-    y: y / canvas.height,
-    dragging: drag,
-    color: color.value,
-    size: +size.value
+/* ===========================
+   SEND LOOP (THROTTLED)
+=========================== */
+setInterval(() => {
+  if (!sendQueue.length || socket.readyState !== 1) return;
+
+  socket.send(JSON.stringify({
+    type: "draw",
+    data: sendQueue
+  }));
+  sendQueue = [];
+}, 40);
+
+/* ===========================
+   POINTER EVENTS
+=========================== */
+function start(e) {
+  drawing = true;
+  const p = pos(e);
+  const stroke = {
+    x: p.x,
+    y: p.y,
+    color: colorInput.value,
+    size: +sizeInput.value
   };
-
-  if (!raf) {
-    raf = true;
-    requestAnimationFrame(flush);
-  }
+  points = [stroke];
+  sendQueue.push(normalize(stroke, false));
 }
 
-function flush() {
-  if (pending && socket.readyState === 1) {
-    socket.send(JSON.stringify({
-      to: toUser,
-      type: "draw",
-      ...pending
-    }));
-    pending = null;
-  }
-  raf = false;
+function move(e) {
+  if (!drawing) return;
+  const p = pos(e);
+  const stroke = {
+    x: p.x,
+    y: p.y,
+    color: colorInput.value,
+    size: +sizeInput.value
+  };
+  points.push(stroke);
+  sendQueue.push(normalize(stroke, true));
 }
+
+function end() {
+  drawing = false;
+  points = [];
+}
+
+canvas.addEventListener("mousedown", start);
+canvas.addEventListener("mousemove", move);
+canvas.addEventListener("mouseup", end);
+canvas.addEventListener("mouseleave", end);
+
+canvas.addEventListener("touchstart", e => { e.preventDefault(); start(e); });
+canvas.addEventListener("touchmove", e => { e.preventDefault(); move(e); });
+canvas.addEventListener("touchend", end);
 
 /* ===========================
-   EVENTS
+   NORMALIZE DATA
 =========================== */
-canvas.addEventListener("mousedown", e => {
-  isDrawing = true;
-  const p = getPos(e);
-  draw(p.x, p.y, false, color.value, +size.value);
-  queue(p.x, p.y, false);
-});
-
-canvas.addEventListener("mousemove", e => {
-  if (!isDrawing) return;
-  const p = getPos(e);
-  draw(p.x, p.y, true, color.value, +size.value);
-  queue(p.x, p.y, true);
-});
-
-["mouseup", "mouseleave"].forEach(ev =>
-  canvas.addEventListener(ev, () => isDrawing = false)
-);
+function normalize(p, drag) {
+  return {
+    x: p.x / canvas.width,
+    y: p.y / canvas.height,
+    dragging: drag,
+    color: p.color,
+    size: p.size
+  };
+}
 
 /* ===========================
    CLEAR
 =========================== */
-window.clearCanvas = () => {
+function clearCanvas() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  lastPos = null;
-  socket.send(JSON.stringify({ to: toUser, type: "clear" }));
-};
+  socket.send(JSON.stringify({ type: "clear" }));
+}
