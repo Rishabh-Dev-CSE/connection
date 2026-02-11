@@ -17,4 +17,7 @@ urlpatterns = [
         'document_root': settings.BASE_DIR,
         'path': 'ads.txt'
     }),
+    
+    path("random-video/", views.random_video_page),
+  
 ]

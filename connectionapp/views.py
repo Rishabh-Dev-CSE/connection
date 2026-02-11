@@ -1,6 +1,8 @@
+import uuid
 from django.shortcuts import render
 from django.http import HttpResponse
-
+from django.http import JsonResponse
+import random
 
 # Home / connect page
 def index(request):
@@ -51,3 +53,8 @@ def video_page(request):
     if not room:
         return HttpResponse("Room missing")
     return render(request, "video/video.html", {"room": room})
+
+
+def random_video_page(request):
+    return render(request, "video/random_video.html")
+

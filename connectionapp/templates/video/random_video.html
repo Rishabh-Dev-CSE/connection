@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Room</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+    }
+
+    body {
+      margin: 0;
+      height: 100vh;
+      background: radial-gradient(circle at top, #111827, #020617);
+      color: white;
+      overflow: hidden;
+    }
+
+    .header {
+      padding: 14px;
+      text-align: center;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    #status {
+      text-align: center;
+      font-size: 14px;
+      opacity: .8;
+    }
+
+    .video-area {
+      height: calc(100vh - 140px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+      padding: 20px;
+    }
+
+    .video-card {
+      position: relative;
+      width: 320px;
+      max-width: 100%;
+      aspect-ratio: 4/3;
+      background: black;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, .6);
+    }
+
+    .video-card video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .name {
+      position: absolute;
+      bottom: 8px;
+      left: 10px;
+      background: rgba(0, 0, 0, .6);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+    }
+
+    .controls {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .controls button {
+      padding: 12px 22px;
+      border-radius: 30px;
+      border: none;
+      font-size: 14px;
+      cursor: pointer;
+      background: #2563eb;
+      color: white;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="header">Omegle Video Chat</div>
+  <div id="status">Searching for stranger...</div>
+
+  <div class="video-area">
+
+    <div class="video-card">
+      <video id="localVideo" autoplay muted playsinline></video>
+      <div class="name">You</div>
+    </div>
+
+    <div class="video-card">
+      <video id="remoteVideo" autoplay playsinline></video>
+      <div class="name">Stranger</div>
+    </div>
+
+  </div>
+
+  <div class="controls">
+    <button onclick="nextUser()">Next</button>
+  </div>
+
+<script>
+const ws = new WebSocket(
+  (location.protocol === "https:" ? "wss://" : "ws://") +
+  location.host +
+  "/ws/stranger/"
+);
+
+const pc = new RTCPeerConnection({
+  iceServers: [
+    { urls: "stun:stun.l.google.com:19302" },
+    { urls: "stun:stun1.l.google.com:19302" }
+  ]
+});
+
+let localStream;
+
+/* CAMERA START */
+navigator.mediaDevices.getUserMedia({
+  video: true,
+  audio: true
+}).then(stream => {
+  localStream = stream;
+  document.getElementById("localVideo").srcObject = stream;
+
+  stream.getTracks().forEach(track => {
+    pc.addTrack(track, stream);
+  });
+});
+
+/* REMOTE VIDEO */
+pc.ontrack = e => {
+  document.getElementById("remoteVideo").srcObject = e.streams[0];
+};
+
+/* ICE SEND */
+pc.onicecandidate = e => {
+  if (e.candidate && ws.readyState === 1) {
+    ws.send(JSON.stringify({
+      type: "ice",
+      candidate: e.candidate
+    }));
+  }
+};
+
+/* SOCKET OPEN */
+ws.onopen = () => {
+  console.log("WS connected");
+};
+
+/* SIGNAL RECEIVE */
+ws.onmessage = async (e) => {
+  const msg = JSON.parse(e.data);
+
+  try {
+
+    if (msg.type === "searching") {
+      document.getElementById("status").innerText = "Searching for stranger...";
+    }
+
+    if (msg.type === "matched") {
+      document.getElementById("status").innerText = "Connected!";
+
+      // ONLY offer-role will create offer
+      if (msg.role === "offer") {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+
+        ws.send(JSON.stringify({
+          type: "offer",
+          offer: offer
+        }));
+      }
+    }
+
+    if (msg.type === "partner_left") {
+      document.getElementById("status").innerText = "Stranger left. Searching again...";
+      document.getElementById("remoteVideo").srcObject = null;
+    }
+
+    if (msg.type === "offer") {
+      await pc.setRemoteDescription(msg.offer);
+
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+
+      ws.send(JSON.stringify({
+        type: "answer",
+        answer: answer
+      }));
+    }
+
+    else if (msg.type === "answer") {
+      await pc.setRemoteDescription(msg.answer);
+    }
+
+    else if (msg.type === "ice" && msg.candidate) {
+      await pc.addIceCandidate(msg.candidate);
+    }
+
+  } catch (err) {
+    console.log("WebRTC error:", err);
+  }
+};
+
+/* NEXT USER */
+function nextUser() {
+  ws.send(JSON.stringify({ type: "next" }));
+
+  document.getElementById("status").innerText = "Searching...";
+  document.getElementById("remoteVideo").srcObject = null;
+
+  pc.getSenders().forEach(sender => {
+    try {
+      pc.removeTrack(sender);
+    } catch {}
+  });
+
+  localStream.getTracks().forEach(track => {
+    pc.addTrack(track, localStream);
+  });
+}
+</script>
+
+</body>
+
+</html>
